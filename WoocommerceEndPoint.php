@@ -216,52 +216,61 @@ class WoocommerceEndPoint
                                     </SecurityHeader>
                               </soap:Header>
                               <soap:Body>
-                                  <SubmitOrder xmlns="http://tempuri.org/AnchorWebservice/AnchorWebservice">
-                                  <SO>
-                                        <Invoice_Seq_Id>41939224</Invoice_Seq_Id>
+                                <SubmitOrderWithImprint xmlns="http://tempuri.org/AnchorWebservice/AnchorWebservice">
+                                      <SOI>
+                                        <Invoice_Seq_Id>0</Invoice_Seq_Id>
                                         <Bill_to_Seq_Id>'.$this->anchorUsername.'</Bill_to_Seq_Id>
-                                        <Ship_to_Seq_Id>'.$this->anchorUsername.'</Ship_to_Seq_Id>
-                                        <PO_Number>65765</PO_Number>
-                                        <Net>10.6</Net>
-                                        <Flag_Rush_Order>Random</Flag_Rush_Order>
-                                        <Date_Ship_By></Date_Ship_By>
-                                        <Shipping_Charge>3.6</Shipping_Charge>
+                                        <Ship_to_Seq_Id>7142057</Ship_to_Seq_Id>
+                                        <PO_Number>TEST IMPR</PO_Number>
+                                        <Net>15</Net>  
+                                        <Flag_Rush_Order>N</Flag_Rush_Order>      
+                                        <Date_Ship_By>09-DEC-2018</Date_Ship_By>
+                                        <Shipping_Charge>5</Shipping_Charge>      
                                         <SO_Detail>
-                                          <SalesOrderDetail>
-                                            <Product_Seq_Id>56743</Product_Seq_Id>
-                                            <Order_Quantity>4</Order_Quantity>
-                                            <Ship_Quantity>4</Ship_Quantity>
-                                            <Unit_Price>8.5</Unit_Price>
-                                            <Discount>0.00</Discount>
-                                            <Extension>0.6</Extension>
+                                          <SalesOrderDetailImprint>
+                                            <Product_Seq_Id>638118</Product_Seq_Id>
+                                            <Order_Quantity>1</Order_Quantity>
+                                            <Ship_Quantity>1</Ship_Quantity>
+                                            <Unit_Price>12</Unit_Price>
+                                            <Discount>0</Discount>
+                                            <Extension>0</Extension>
                                             <Customer_ID>'.$this->anchorUsername.'</Customer_ID>
-                                          </SalesOrderDetail>
-                                          <SalesOrderDetail>
-                                            <Product_Seq_Id>56743</Product_Seq_Id>
-                                            <Order_Quantity>4</Order_Quantity>
-                                            <Ship_Quantity>4</Ship_Quantity>
-                                            <Unit_Price>8.5</Unit_Price>
-                                            <Discount>0.00</Discount>
-                                            <Extension>0.6</Extension>
-                                            <Customer_ID>3345</Customer_ID>
-                                          </SalesOrderDetail>
+                                            <imprint_font_style_id>1</imprint_font_style_id>
+                                            <imprint_text_line1>Line1 TEST</imprint_text_line1>
+                                            <imprint_text_line2>Line2 test</imprint_text_line2>
+                                            <indexing_color_id>1</indexing_color_id>
+                                          </SalesOrderDetailImprint>
+                                           <SalesOrderDetailImprint>
+                                            <Product_Seq_Id>638118</Product_Seq_Id>
+                                            <Order_Quantity>1</Order_Quantity>
+                                            <Ship_Quantity>1</Ship_Quantity>
+                                            <Unit_Price>12</Unit_Price>
+                                            <Discount>0</Discount>
+                                            <Extension>0</Extension>
+                                            <Customer_ID>'.$this->anchorUsername.'</Customer_ID>
+                                            <imprint_font_style_id>1</imprint_font_style_id>
+                                            <imprint_text_line1>Line1 TEST</imprint_text_line1>
+                                            <imprint_text_line2>Line2 test</imprint_text_line2>
+                                            <indexing_color_id>1</indexing_color_id>
+                                          </SalesOrderDetailImprint>
                                         </SO_Detail>
-                                        <Flag_All_Complete></Flag_All_Complete>
-                                        <Ship_method_Seq_Id>606</Ship_method_Seq_Id>
-                                        <Store_Name>Loveworld</Store_Name>
-                                        <Store_Message>Christian Books</Store_Message>
-                                      <Store_Street>*8623 Hemlock Hill Drive*</Store_Street>
+                                        <Flag_All_Complete>N</Flag_All_Complete>
+                                        <Ship_method_Seq_Id>8</Ship_method_Seq_Id>
+                                        <Store_Name>Loveworld Books</Store_Name>
+                                        <Store_Message>Test Successful</Store_Message>
+                                        <Store_Street>8623 Hemlock Hill Drive</Store_Street>
                                         <Store_City>Houston</Store_City>
                                         <Store_State>Texas</Store_State>
                                         <Store_ZIP>77083</Store_ZIP>
-                                        <Store_Country>USA</Store_Country>
-                                        <Intl_Tax_Number>9.0</Intl_Tax_Number>
-                                        <Intl_Tax_Description>Anything babe</Intl_Tax_Description>
-                                        <Intl_Tax_Amount>0.6</Intl_Tax_Amount>
-                                        <Special_Instruction>Nothing o</Special_Instruction>
-                                        <Date_Shipped></Date_Shipped>
-                                      </SO>
-                                </SubmitOrder>
+                                        <Store_Country>United States</Store_Country>
+                                        <Intl_Tax_Number>0</Intl_Tax_Number>
+                                        <Intl_Tax_Description>Test Description</Intl_Tax_Description>
+                                        <Intl_Tax_Amount>0</Intl_Tax_Amount>
+                                        <Special_Instruction>something</Special_Instruction>
+                                        <Date_Shipped>25-DEC-2021</Date_Shipped>
+                                    </SOI>
+                                      <sErrorCode>0</sErrorCode>
+                                </SubmitOrderWithImprint>
                               </soap:Body>
                             </soap:Envelope>';   // data from the form, e.g. some ID number
 
@@ -304,6 +313,8 @@ class WoocommerceEndPoint
         return $this->XMLtoJSON($response2);
 
     }
+
+
 
     /*
      * GetShipMethodsInternational (generates <Ship_to_Seq_Id>int</Ship_to_Seq_Id>)
@@ -743,6 +754,319 @@ class WoocommerceEndPoint
 
     }
 
+
+    /*
+     * get Various Flat Rates
+     * Return Various FLAT shipping Rates, given total number of items,
+     * weight(use 1 if N/A), zipcode(use blank space if N/A), and country code ID
+     */
+    public function register_get_various_flat_rate_api()
+    {
+        register_rest_route('anchor-api/v1', 'fetch-various-flat-rate', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'handle_get_various_flat_rate_request')
+        ));
+    }
+
+    public function handle_get_various_flat_rate_request($data)
+    {
+        $headers = $data->get_headers();
+        $params  = $data->get_params();
+
+        if (empty($params['weight']) ||
+            empty($params['total_items']) ||
+            empty($params['country_seq_id'])){
+            return new WP_REST_Response(
+                array(['status' => 'error', 'message' => 'missing weight or total_items or country_seq_id, zip_code(optional)']), 400);
+        }
+        if (empty($params['zip_code'])){
+            $params['zip_code'] = '';
+        }
+        $result  = $this->fetch_various_flat_rate_from_anchor($params);
+        return new WP_REST_Response($result, 200);
+
+    }
+
+    public function fetch_various_flat_rate_from_anchor($params)
+    {
+        $soapUrl = $this->anchorUrl; // asmx URL of WSDL
+        $soapUser = $this->anchorUsername;  //  username
+        $soapPassword = $this->anchorPassword; // password
+
+        // xml post structure
+        $xml_post_string = '<?xml version="1.0" encoding="utf-8"?>
+                            <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+                              <soap:Header>
+                                <SecurityHeader xmlns="http://tempuri.org/AnchorWebservice/AnchorWebservice">
+                                  <Username>'.$this->anchorUsername.'</Username>
+                                  <Password>'.$this->anchorPassword.'</Password>
+                                </SecurityHeader>
+                              </soap:Header>
+                              <soap:Body>
+                              <GetVariousFlatRates xmlns="http://tempuri.org/AnchorWebservice/AnchorWebservice">
+                                  <dWeight>'.$params['weight'].'</dWeight>
+                                  <ZipCode>'.$params['zip_code'].'</ZipCode>
+                                  <Country_Seq_ID>'.$params['country_seq_id'].'</Country_Seq_ID>
+                                  <TotalItems>'.$params['total_items'].'</TotalItems>
+                                  <sErrorCode></sErrorCode>
+                              </GetVariousFlatRates>
+                              </soap:Body>
+                            </soap:Envelope>';   // data from the form, e.g. some ID number
+
+        $headers = array(
+            "Content-type: text/xml;charset=\"utf-8\"",
+            "Accept: text/xml",
+            "Cache-Control: no-cache",
+            "Pragma: no-cache",
+//            "SOAPAction: http://connecting.website.com/WSDL_Service/GetPrice",
+            "Content-length: ".strlen($xml_post_string),
+        ); //SOAPAction: your op URL
+
+        $url = $soapUrl;
+
+        // PHP cURL  for https connection with auth
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 1);
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_USERPWD, $soapUser.":".$soapPassword); // username and password - declared at the top of the doc
+        curl_setopt($ch, CURLOPT_HTTPAUTH, CURLAUTH_ANY);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $xml_post_string); // the SOAP request
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+
+        // converting
+        $response = curl_exec($ch);
+
+        curl_close($ch);
+
+        // converting
+        $response1 = str_replace("<soap:Body>","",$response);
+        $response2 = str_replace("</soap:Body>","",$response1);
+
+        // converting to XML
+        $parser = simplexml_load_string($response2);
+        return $this->XMLtoJSON($response2);
+
+    }
+
+    /*
+     * Get Various Ship Rate
+     * Return Various Ship Rates, given weight, zipcode, and country code
+     */
+    public function register_get_various_ship_rate_api()
+    {
+        register_rest_route('anchor-api/v1', 'fetch-various-ship-rate', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'handle_get_various_ship_rate_request')
+        ));
+    }
+
+    public function handle_get_various_ship_rate_request($data)
+    {
+        $headers = $data->get_headers();
+        $params  = $data->get_params();
+
+        if (empty($params['weight']) ||
+            empty($params['country_seq_id'])){
+            return new WP_REST_Response(
+                array(['status' => 'error', 'message' => 'missing weight or total_items or country_seq_id, zip_code(optional)']), 400);
+        }
+        if (empty($params['zip_code'])){
+            $params['zip_code'] = '';
+        }
+        $result  = $this->fetch_various_ship_rate_from_anchor($params);
+        return new WP_REST_Response($result, 200);
+
+    }
+
+    public function fetch_various_ship_rate_from_anchor($params)
+    {
+        $soapUrl = $this->anchorUrl; // asmx URL of WSDL
+        $soapUser = $this->anchorUsername;  //  username
+        $soapPassword = $this->anchorPassword; // password
+
+        // xml post structure
+        $xml_post_string = '<?xml version="1.0" encoding="utf-8"?>
+                            <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+                              <soap:Header>
+                                <SecurityHeader xmlns="http://tempuri.org/AnchorWebservice/AnchorWebservice">
+                                  <Username>'.$this->anchorUsername.'</Username>
+                                  <Password>'.$this->anchorPassword.'</Password>
+                                </SecurityHeader>
+                              </soap:Header>
+                              <soap:Body>
+                                  <GetVariousShipRates xmlns="http://tempuri.org/AnchorWebservice/AnchorWebservice">
+                                      <dWeight>'.$params['weight'].'</dWeight>
+                                      <ZipCode>'.$params['zip_code'].'</ZipCode>
+                                      <Country_Seq_ID>'.$params['country_seq_id'].'</Country_Seq_ID>
+                                      <sErrorCode></sErrorCode>
+                                  </GetVariousShipRates>
+                              </soap:Body>
+                            </soap:Envelope>';   // data from the form, e.g. some ID number
+
+        $headers = array(
+            "Content-type: text/xml;charset=\"utf-8\"",
+            "Accept: text/xml",
+            "Cache-Control: no-cache",
+            "Pragma: no-cache",
+//            "SOAPAction: http://connecting.website.com/WSDL_Service/GetPrice",
+            "Content-length: ".strlen($xml_post_string),
+        ); //SOAPAction: your op URL
+
+        $url = $soapUrl;
+
+        // PHP cURL  for https connection with auth
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 1);
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_USERPWD, $soapUser.":".$soapPassword); // username and password - declared at the top of the doc
+        curl_setopt($ch, CURLOPT_HTTPAUTH, CURLAUTH_ANY);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $xml_post_string); // the SOAP request
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+
+        // converting
+        $response = curl_exec($ch);
+
+        curl_close($ch);
+
+        // converting
+        $response1 = str_replace("<soap:Body>","",$response);
+        $response2 = str_replace("</soap:Body>","",$response1);
+
+        // converting to XML
+        $parser = simplexml_load_string($response2);
+        return $this->XMLtoJSON($response2);
+
+    }
+
+    /*
+     * Submit Ship To Account
+     * Return Integer, given a ShiptoCustomer Structure as input.
+     * Return the Customer Ship To Account number.
+     * leave customer_type_seq_id to 1, it will be assigned according to your Billing Default. Ship_method_seq_id also will follow the default, which usually is Fedex or UPS ground.
+     * country_seq_id default is USA, its 282. Use GetCountries function to find out the correct
+     */
+    public function register_submit_ship_to_customer_account_api()
+    {
+        register_rest_route('anchor-api/v1', 'submit-ship-to-customer', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'handle_submit_ship_to_customer_account_request')
+        ));
+    }
+
+    public function handle_submit_ship_to_customer_account_request($data)
+    {
+        $headers = $data->get_headers();
+        $params  = $data->get_params();
+
+        if (empty($params['name']) ||
+            empty($params['street1']) ||
+            empty($params['street2']) ||
+            empty($params['city']) ||
+            empty($params['state']) ||
+            empty($params['country']) ||
+            empty($params['phone']) ||
+            empty($params['zip_code']) ||
+            empty($params['email']) ||
+            empty($params['contact']) ||
+            empty($params['country_seq_id'])){
+            return new WP_REST_Response(
+                array(['status' => 'error', 'message' => $params]), 400);
+        }
+        if (empty($params['fax'])){
+            $params['fax'] = '';
+        }
+        $result  = $this->submit_ship_to_customer_account_to_anchor($params);
+        return new WP_REST_Response($result, 200);
+
+    }
+
+    public function submit_ship_to_customer_account_to_anchor($params)
+    {
+        $soapUrl = $this->anchorUrl; // asmx URL of WSDL
+        $soapUser = $this->anchorUsername;  //  username
+        $soapPassword = $this->anchorPassword; // password
+
+        // xml post structure
+        $xml_post_string = '<?xml version="1.0" encoding="utf-8"?>
+                            <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+                              <soap:Header>
+                                <SecurityHeader xmlns="http://tempuri.org/AnchorWebservice/AnchorWebservice">
+                                  <Username>'.$this->anchorUsername.'</Username>
+                                  <Password>'.$this->anchorPassword.'</Password>
+                                </SecurityHeader>
+                              </soap:Header>
+                              <soap:Body>
+                                 <SubmitShipToAccountWithError xmlns="http://tempuri.org/AnchorWebservice/AnchorWebservice">
+                                      <ShipToCustomer>
+                                        <Bill_To_Seq_Id>'.$this->anchorUsername.'</Bill_To_Seq_Id>
+                                        <Ship_To_Seq_Id>0</Ship_To_Seq_Id>
+                                        <Name>'.$params['name'].'</Name>
+                                        <Street1>'.$params['street1'].'</Street1>
+                                        <Street2>'.$params['street2'].'</Street2>
+                                        <City>'.$params['city'].'</City>
+                                        <State>'.$params['state'].'</State>
+                                        <ZipCode>'.$params['zip_code'].'</ZipCode>
+                                        <Country>'.$params['country'].'</Country>
+                                        <Telephone>'.$params['phone'].'</Telephone>
+                                        <Fax>'.$params['fax'].'</Fax>
+                                        <Email>'.$params['email'].'</Email>
+                                        <Contact>'.$params['name'].'</Contact>
+                                        <Customer_Type_Seq_Id>1</Customer_Type_Seq_Id>
+                                        <Ship_method_Seq_Id>'.$params['ship_method_seq_id'].'</Ship_method_Seq_Id>
+                                        <Country_Seq_Id>'.$params['country_seq_id'].'</Country_Seq_Id>
+                                      </ShipToCustomer>
+                                      <sErrorCode></sErrorCode>
+                                 </SubmitShipToAccountWithError>
+                              </soap:Body>
+                            </soap:Envelope>';   // data from the form, e.g. some ID number
+
+        $headers = array(
+            "Content-type: text/xml;charset=\"utf-8\"",
+            "Accept: text/xml",
+            "Cache-Control: no-cache",
+            "Pragma: no-cache",
+//            "SOAPAction: http://connecting.website.com/WSDL_Service/GetPrice",
+            "Content-length: ".strlen($xml_post_string),
+        ); //SOAPAction: your op URL
+
+        $url = $soapUrl;
+
+        // PHP cURL  for https connection with auth
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 1);
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_USERPWD, $soapUser.":".$soapPassword); // username and password - declared at the top of the doc
+        curl_setopt($ch, CURLOPT_HTTPAUTH, CURLAUTH_ANY);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $xml_post_string); // the SOAP request
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+
+        // converting
+        $response = curl_exec($ch);
+
+        curl_close($ch);
+
+        // converting
+        $response1 = str_replace("<soap:Body>","",$response);
+        $response2 = str_replace("</soap:Body>","",$response1);
+
+        // converting to XML
+        $parser = simplexml_load_string($response2);
+//        return $response2;
+        return $this->XMLtoJSON($response2);
+
+    }
+
+
+
     /*
      * Get Shipping Rate two
      * Return a Shipping_Rate Structure, given Weight, Ship Method ID, Zip Code, and Country Code.
@@ -1019,7 +1343,6 @@ class WoocommerceEndPoint
      * Returns Order information and items.
      * Useful to check if any items is unfortunately not shipped due to out of stock.
      */
-
     public function register_get_shipped_invoice_details_api()
     {
         register_rest_route('anchor-api/v1', 'fetch-shipped-invoice-details', array(

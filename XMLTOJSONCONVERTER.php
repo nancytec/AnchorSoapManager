@@ -1,6 +1,6 @@
 <?php
 
-Trait XMLTOJSONCONVERTER{
+trait XMLTOJSONCONVERTER{
 
     function hhb_tohtml(string $str):string
     {

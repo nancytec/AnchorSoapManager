@@ -23,24 +23,31 @@ class AnchorSoapManager extends WoocommerceAPI {
     public $anchorUsername = 786424;
     public $anchorPassword = 'loveworld';
 
-    public $result;
+    public $anchor_report;
 
     public function __construct()
     {
         add_action('init', array($this, 'fetch_processed_xml_orders_from_anchor'));
 
-        //Add shortcode(Shows the form)
-        add_shortcode('test-area', array($this, 'load_short_code'));
+        // Woocommerce Operation automation hooks
+        $this->instantiate_woocommerce_operation_automation_hooks();
 
-        //Woocomerce sompleted order hook
-        add_action('woocommerce_thankyou',array(&$this, 'submit_order_to_anchor'),10,2);
+        // Rest APIS for fetching Anchor Web services stuffs
+        $this->instantiate_rest_api_hooks();
 
-        add_action('woocommerce_delete_order', array($this, 'delete_order_from_anchor'));
+        // Short-codes hooks
+        $this->instantiate_short_codes_hooks();
 
+    }
 
+    /*
+    * Rest APIS for fetching Anchor Web services stuffs
+    */
+    public function instantiate_rest_api_hooks()
+    {
         /*
-         * Rest APIS for fetching Anchor Web services stuffs
-         */
+        * Rest APIS for fetching Anchor Web services stuffs
+        */
         add_action('rest_api_init', array($this, 'register_shipping_methods_api'));
         add_action('rest_api_init', array($this, 'register_fetch_countries_api'));
         add_action('rest_api_init', array($this, 'register_delete_order_api'));
@@ -59,10 +66,246 @@ class AnchorSoapManager extends WoocommerceAPI {
         add_action('rest_api_init', array($this, 'register_vendor_sales_by_date_api'));
         add_action('rest_api_init', array($this, 'register_vendor_inventory_adjustments_by_date_api'));
         add_action('rest_api_init', array($this, 'submit_order_to_anchor_api'));
-
-
+        add_action('rest_api_init', array($this, 'register_get_various_flat_rate_api'));
+        add_action('rest_api_init', array($this, 'register_get_various_ship_rate_api'));
+        add_action('rest_api_init', array($this, 'register_submit_ship_to_customer_account_api'));
 
     }
+
+    /*
+     * Short-codes hooks
+     */
+    public function instantiate_short_codes_hooks()
+    {
+        //Add shortcode(Shows the form)
+        add_shortcode('anchor-report', array($this, 'load_anchor_report'));
+    }
+
+    /*
+     * Woocommerce Operation automation hooks
+     */
+    public function instantiate_woocommerce_operation_automation_hooks()
+    {
+        add_action('woocommerce_delete_order', array($this, 'delete_order_from_anchor'));
+
+        //Woocomerce sompleted order hook
+        add_action('woocommerce_order_status_completed',array(&$this, 'prepare_woocommerce_order_for_anchor'),10,2);
+    }
+
+
+    public function create_ship_to_customer_account_on_anchor($params)
+    {
+        $soapUrl = $this->anchorUrl; // asmx URL of WSDL
+        $soapUser = $this->anchorUsername;  //  username
+        $soapPassword = $this->anchorPassword; // password
+
+        // xml post structure
+        $xml_post_string = '<?xml version="1.0" encoding="utf-8"?>
+                            <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+                              <soap:Header>
+                                <SecurityHeader xmlns="http://tempuri.org/AnchorWebservice/AnchorWebservice">
+                                  <Username>'.$this->anchorUsername.'</Username>
+                                  <Password>'.$this->anchorPassword.'</Password>
+                                </SecurityHeader>
+                              </soap:Header>
+                              <soap:Body>
+                                 <SubmitShipToAccountWithError xmlns="http://tempuri.org/AnchorWebservice/AnchorWebservice">
+                                      <ShipToCustomer>
+                                        <Bill_To_Seq_Id>'.$this->anchorUsername.'</Bill_To_Seq_Id>
+                                        <Ship_To_Seq_Id>0</Ship_To_Seq_Id>
+                                        <Name>'.$params->shipping->first_name.'</Name>
+                                        <Street1>'.$params->shipping->address_1.'</Street1>
+                                        <Street2>'.$params->shipping->address_2.'</Street2>
+                                        <City>'.$params->shipping->city.'</City>
+                                        <State>'.$params->shipping->state.'</State>
+                                        <ZipCode>'.$params->shipping->post_code.'</ZipCode>
+                                        <Country>'.$params->shipping->country.'</Country>
+                                        <Telephone>'.$params->shipping->phone.'</Telephone>
+                                        <Fax>'.$params->shipping->phone.'</Fax>
+                                        <Email>'.$params->billing->email.'</Email>
+                                        <Contact>'.$params['name'].'</Contact>
+                                        <Customer_Type_Seq_Id>1</Customer_Type_Seq_Id>
+                                        <Ship_method_Seq_Id>8</Ship_method_Seq_Id>
+                                        <Country_Seq_Id>282</Country_Seq_Id>
+                                      </ShipToCustomer>
+                                      <sErrorCode></sErrorCode>
+                                 </SubmitShipToAccountWithError>
+                              </soap:Body>
+                            </soap:Envelope>';   // data from the form, e.g. some ID number
+
+        $headers = array(
+            "Content-type: text/xml;charset=\"utf-8\"",
+            "Accept: text/xml",
+            "Cache-Control: no-cache",
+            "Pragma: no-cache",
+//            "SOAPAction: http://connecting.website.com/WSDL_Service/GetPrice",
+            "Content-length: ".strlen($xml_post_string),
+        ); //SOAPAction: your op URL
+
+        $url = $soapUrl;
+
+        // PHP cURL  for https connection with auth
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 1);
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_USERPWD, $soapUser.":".$soapPassword); // username and password - declared at the top of the doc
+        curl_setopt($ch, CURLOPT_HTTPAUTH, CURLAUTH_ANY);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $xml_post_string); // the SOAP request
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+
+        // converting
+        $response = curl_exec($ch);
+
+        curl_close($ch);
+
+        // converting
+        $response1 = str_replace("<soap:Body>","",$response);
+        $response2 = str_replace("</soap:Body>","",$response1);
+
+        // converting to XML
+        $parser = simplexml_load_string($response2);
+//        return $response2;
+        return $this->XMLtoJSON($response2);
+
+    }
+
+    public function prepare_woocommerce_order_for_anchor($order_id)
+    {
+
+        $order  = wc_get_order($order_id);
+        // Create a Ship To User Account
+        $shipToUser = $this->create_ship_to_customer_account_on_anchor($order);
+
+        //Check if there's an error during Ship To User Account creation
+        if (!empty($shipToUser->SubmitShipToAccountWithErrorResponse->SubmitShipToAccountWithErrorResult->sErrorCode)){
+            return $this->anchor_report = "Error Occurred with Shipping Information"; //Do Not proceed
+        }
+
+        //Create the order
+        $anchorAnchor =  $this->submit_woocommerce_order_to_anchor($order, $shipToUser);
+        //Check if the Order is submitted to Anchor Successfully
+        if ($anchorAnchor->SubmitOrderWithImprintResponse->SubmitOrderWithImprintResult == 'false'){
+            return $this->anchor_report = "Error Occurred while submitting the Order to Anchor"; //Do Not proceed
+        }
+
+        $invoiceSeqId        = $anchorAnchor->SubmitOrderWithImprintResponse->SOI->Invoice_Seq_Id;
+        $shipToCustomerSeqId = $anchorAnchor->SubmitOrderWithImprintResponse->SOI->Ship_to_Seq_Id;;
+        return $this->anchor_report = "Order Successfully Created! Your Invoice Seq Id is: $invoiceSeqId, Your ship to customer Seq Id is: $shipToCustomerSeqId"; //Do Not proceed
+    }
+
+    public function submit_woocommerce_order_to_anchor($params, $shipToUser)
+    {
+        // xml post structure
+        $xml_post_string = '<?xml version="1.0" encoding="utf-8"?>
+                            <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+                               <soap:Header>
+                                    <SecurityHeader xmlns="http://tempuri.org/AnchorWebservice/AnchorWebservice">
+                                      <Username>'.$this->anchorUsername.'</Username>
+                                      <Password>'.$this->anchorPassword.'</Password>
+                                    </SecurityHeader>
+                              </soap:Header>
+                              <soap:Body>
+                                <SubmitOrderWithImprint xmlns="http://tempuri.org/AnchorWebservice/AnchorWebservice">
+                                      <SOI>
+                                        <Invoice_Seq_Id>0</Invoice_Seq_Id>
+                                        <Bill_to_Seq_Id>'.$this->anchorUsername.'</Bill_to_Seq_Id>
+                                        <Ship_to_Seq_Id>'.$this->anchorUsername->SubmitShipToAccountWithErrorResponse->SubmitShipToAccountWithErrorResult.'</Ship_to_Seq_Id>
+                                        <PO_Number>Order By: '.$params->id.'</PO_Number>
+                                        <Net>15</Net>  
+                                        <Flag_Rush_Order>N</Flag_Rush_Order>      
+                                        <Date_Ship_By>09-DEC-2018</Date_Ship_By>
+                                        <Shipping_Charge>5</Shipping_Charge>      
+                                        <SO_Detail>
+                                          <SalesOrderDetailImprint>
+                                            <Product_Seq_Id>638118</Product_Seq_Id>
+                                            <Order_Quantity>1</Order_Quantity>
+                                            <Ship_Quantity>1</Ship_Quantity>
+                                            <Unit_Price>12</Unit_Price>
+                                            <Discount>0</Discount>
+                                            <Extension>0</Extension>
+                                            <Customer_ID>'.$this->anchorUsername.'</Customer_ID>
+                                            <imprint_font_style_id>1</imprint_font_style_id>
+                                            <imprint_text_line1>Line1 TEST</imprint_text_line1>
+                                            <imprint_text_line2>Line2 test</imprint_text_line2>
+                                            <indexing_color_id>1</indexing_color_id>
+                                          </SalesOrderDetailImprint>
+                                           <SalesOrderDetailImprint>
+                                            <Product_Seq_Id>638118</Product_Seq_Id>
+                                            <Order_Quantity>1</Order_Quantity>
+                                            <Ship_Quantity>1</Ship_Quantity>
+                                            <Unit_Price>12</Unit_Price>
+                                            <Discount>0</Discount>
+                                            <Extension>0</Extension>
+                                            <Customer_ID>'.$this->anchorUsername.'</Customer_ID>
+                                            <imprint_font_style_id>1</imprint_font_style_id>
+                                            <imprint_text_line1>Line1 TEST</imprint_text_line1>
+                                            <imprint_text_line2>Line2 test</imprint_text_line2>
+                                            <indexing_color_id>1</indexing_color_id>
+                                          </SalesOrderDetailImprint>
+                                        </SO_Detail>
+                                        <Flag_All_Complete>N</Flag_All_Complete>
+                                        <Ship_method_Seq_Id>8</Ship_method_Seq_Id>
+                                        <Store_Name>Loveworld Books</Store_Name>
+                                        <Store_Message>Test Successful</Store_Message>
+                                        <Store_Street>8623 Hemlock Hill Drive</Store_Street>
+                                        <Store_City>Houston</Store_City>
+                                        <Store_State>Texas</Store_State>
+                                        <Store_ZIP>77083</Store_ZIP>
+                                        <Store_Country>United States</Store_Country>
+                                        <Intl_Tax_Number>0</Intl_Tax_Number>
+                                        <Intl_Tax_Description>Test Description</Intl_Tax_Description>
+                                        <Intl_Tax_Amount>0</Intl_Tax_Amount>
+                                        <Special_Instruction>something</Special_Instruction>
+                                        <Date_Shipped>25-DEC-2021</Date_Shipped>
+                                    </SOI>
+                                      <sErrorCode>0</sErrorCode>
+                                </SubmitOrderWithImprint>
+                              </soap:Body>
+                            </soap:Envelope>';   // data from the form, e.g. some ID number
+
+        $headers = array(
+            "Content-type: text/xml;charset=\"utf-8\"",
+            "Accept: text/xml",
+            "Cache-Control: no-cache",
+            "Pragma: no-cache",
+//            "SOAPAction: http://connecting.website.com/WSDL_Service/GetPrice",
+            "Content-length: ".strlen($xml_post_string),
+        ); //SOAPAction: your op URL
+
+        $url = $this->anchorUrl;
+
+        // PHP cURL  for https connection with auth
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 1);
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_USERPWD, $this->anchorUsername.":".$this->anchorPassword); // username and password - declared at the top of the doc
+        curl_setopt($ch, CURLOPT_HTTPAUTH, CURLAUTH_ANY);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $xml_post_string); // the SOAP request
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+
+        // converting
+        $response = curl_exec($ch);
+
+        curl_close($ch);
+
+//        // converting
+        $response1 = str_replace("<soap:Body>","",$response);
+        $response2 = str_replace("</soap:Body>","",$response1);
+
+        // converting to XML
+
+        $parser = simplexml_load_string($response2);
+
+        return $this->XMLtoJSON($response2);
+
+    }
+
 
 
     public function fetch_processed_xml_orders_from_anchor()
@@ -132,295 +375,10 @@ class AnchorSoapManager extends WoocommerceAPI {
 
     }
 
-    public function submit_order_xml_to_anchor()
-    {
-//        if ( ! $order_id )
-//            return;
-//
-//        // Get an instance of the WC_Order object
-//        $order = wc_get_order( $order_id );
-//
-//        // Get the order key
-//        $order_key = $order->get_order_key();
-//
-//        // Get the order number
-//        $order_key = $order->get_order_number();
-//
-//
-//        // Loop through order items
-//        foreach ( $order->get_items() as $item_id => $item ) {
-//
-//            // Get the product object
-//            $product = $item->get_product();
-//
-//            // Get the product Id
-//            $product_id = $product->get_id();
-//
-//            // Get the product name
-//            $product_id = $item->get_name();
-//        }
-
-
-
-        //Sending Data to anchor soap API
-        $soapUrl = $this->anchorUrl; // asmx URL of WSDL
-        $soapUser = $this->anchorUsername;  //  username
-        $soapPassword = $this->anchorPassword; // password
-
-        // xml post structure
-
-        $xml_post_string = '<?xml version="1.0" encoding="utf-8"?>
-                            <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
-                               <soap:Header>
-                                    <SecurityHeader xmlns="http://tempuri.org/AnchorWebservice/AnchorWebservice">
-                                      <Username>'.$this->anchorUsername.'</Username>
-                                      <Password>'.$this->anchorPassword.'</Password>
-                                    </SecurityHeader>
-                              </soap:Header>
-                              <soap:Body>
-                                  <SubmitOrder xmlns="http://tempuri.org/AnchorWebservice/AnchorWebservice">
-                                  <SO>
-                                        <Invoice_Seq_Id>3456</Invoice_Seq_Id>
-                                        <Bill_to_Seq_Id>'.$this->anchorUsername.'</Bill_to_Seq_Id>
-                                        <Ship_to_Seq_Id>'.$this->anchorUsername.'</Ship_to_Seq_Id>
-                                        <PO_Number>65765</PO_Number>
-                                        <Net>10.6</Net>
-                                        <Flag_Rush_Order>Random</Flag_Rush_Order>
-                                        <Date_Ship_By>Random</Date_Ship_By>
-                                        <Shipping_Charge>3.6</Shipping_Charge>
-                                        <SO_Detail>
-                                          <SalesOrderDetail>
-                                            <Product_Seq_Id>56743</Product_Seq_Id>
-                                            <Order_Quantity>4</Order_Quantity>
-                                            <Ship_Quantity>4</Ship_Quantity>
-                                            <Unit_Price>8.5</Unit_Price>
-                                            <Discount>0.00</Discount>
-                                            <Extension>0.6</Extension>
-                                            <Customer_ID>3345</Customer_ID>
-                                          </SalesOrderDetail>
-                                          <SalesOrderDetail>
-                                            <Product_Seq_Id>56743</Product_Seq_Id>
-                                            <Order_Quantity>4</Order_Quantity>
-                                            <Ship_Quantity>4</Ship_Quantity>
-                                            <Unit_Price>8.5</Unit_Price>
-                                            <Discount>0.00</Discount>
-                                            <Extension>0.6</Extension>
-                                            <Customer_ID>3345</Customer_ID>
-                                          </SalesOrderDetail>
-                                        </SO_Detail>
-                                        <Flag_All_Complete>No</Flag_All_Complete>
-                                        <Ship_method_Seq_Id>23</Ship_method_Seq_Id>
-                                        <Store_Name>Loveworld</Store_Name>
-                                        <Store_Message>Christian Books</Store_Message>
-                                      <Store_Street>*8623 Hemlock Hill Drive*</Store_Street>
-                                        <Store_City>Houston</Store_City>
-                                        <Store_State>Texas</Store_State>
-                                        <Store_ZIP>77083</Store_ZIP>
-                                        <Store_Country>USA</Store_Country>
-                                        <Intl_Tax_Number>9.0</Intl_Tax_Number>
-                                        <Intl_Tax_Description>Anything babe</Intl_Tax_Description>
-                                        <Intl_Tax_Amount>0.6</Intl_Tax_Amount>
-                                        <Special_Instruction>Nothing o</Special_Instruction>
-                                        <Date_Shipped>12-4-2022</Date_Shipped>
-                                      </SO>
-                                </SubmitOrder>
-                              </soap:Body>
-                            </soap:Envelope>';   // data from the form, e.g. some ID number
-
-        $headers = array(
-            "Content-type: text/xml;charset=\"utf-8\"",
-            "Accept: text/xml",
-            "Cache-Control: no-cache",
-            "Pragma: no-cache",
-//            "SOAPAction: http://connecting.website.com/WSDL_Service/GetPrice",
-            "Content-length: ".strlen($xml_post_string),
-        ); //SOAPAction: your op URL
-
-        $url = $soapUrl;
-
-        // PHP cURL  for https connection with auth
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 1);
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_USERPWD, $soapUser.":".$soapPassword); // username and password - declared at the top of the doc
-        curl_setopt($ch, CURLOPT_HTTPAUTH, CURLAUTH_ANY);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $xml_post_string); // the SOAP request
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-
-        // converting
-        $response = curl_exec($ch);
-
-        curl_close($ch);
-
-//        // converting
-        $response1 = str_replace("<soap:Body>","",$response);
-        $response2 = str_replace("</soap:Body>","",$response1);
-
-        // converting to XML
-        $parser = simplexml_load_string($response2);
-
-        $result = $this->hhb_tohtml($response);
-        $this->result = $result;
-
-        // user $parser to get your data out of XML response and to display it.
-
-        // Flag the action as done (to avoid repetitions on reload for example)
-//        $order->update_meta_data( '_thankyou_action_done', true );
-//        $order->save();
-    }
-
-    public function submit_ship_to_account()
-    {
-        //Fetch data from anchor soap API
-        //Data, connection, auth
-//        $dataFromTheForm = $_POST['fieldName']; // request data from the form
-        $soapUrl = $this->anchorUrl; // asmx URL of WSDL
-        $soapUser = $this->anchorUsername;  //  username
-        $soapPassword = $this->anchorPassword; // password
-
-        // xml post structure
-
-        $xml_post_string = '<?xml version="1.0" encoding="utf-8"?>
-                            <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
-                              <soap:Header>
-                                <SecurityHeader xmlns="http://tempuri.org/AnchorWebservice/AnchorWebservice">
-                                  <Username>'.$this->anchorUsername.'</Username>
-                                  <Password>'.$this->anchorPassword.'</Password>
-                                </SecurityHeader>
-                              </soap:Header>
-                              <soap:Body>
-                                <SubmitShipToAccount xmlns="http://tempuri.org/AnchorWebservice/AnchorWebservice">
-                                      <ShipToCustomer>
-                                        <Bill_To_Seq_Id>'.$this->anchorUsername.'</Bill_To_Seq_Id>
-                                        <Ship_To_Seq_Id xsi:nil="true"></Ship_To_Seq_Id>
-                                        <Name>Loveworld Books</Name>
-                                        <Street1>8623 Hemlock Hill Drive</Street1>
-                                        <Street2>8623 Hemlock Hill Drive</Street2>
-                                        <City>Houston</City>
-                                        <State>Texas</State>
-                                        <ZipCode>77083</ZipCode>
-                                        <Country>USA</Country>
-                                        <Telephone>+1(800) 620-8522</Telephone>
-                                        <Fax>35</Fax>
-                                        <Email>sales@loveworldbooks.org</Email>
-                                        <Contact>8623 Hemlock Hill Drive</Contact>
-                                        <Customer_Type_Seq_Id>'.$this->anchorUsername.'</Customer_Type_Seq_Id>
-                                        <Ship_method_Seq_Id>'.$this->anchorUsername.'</Ship_method_Seq_Id>
-                                        <Country_Seq_Id>282</Country_Seq_Id>
-                                      </ShipToCustomer>
-                                </SubmitShipToAccount>
-                              </soap:Body>
-                            </soap:Envelope>';   // data from the form, e.g. some ID number
-
-        $headers = array(
-            "Content-type: text/xml;charset=\"utf-8\"",
-            "Accept: text/xml",
-            "Cache-Control: no-cache",
-            "Pragma: no-cache",
-//            "SOAPAction: http://connecting.website.com/WSDL_Service/GetPrice",
-            "Content-length: ".strlen($xml_post_string),
-        ); //SOAPAction: your op URL
-
-        $url = $soapUrl;
-
-        // PHP cURL  for https connection with auth
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 1);
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_USERPWD, $soapUser.":".$soapPassword); // username and password - declared at the top of the doc
-        curl_setopt($ch, CURLOPT_HTTPAUTH, CURLAUTH_ANY);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $xml_post_string); // the SOAP request
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-
-        // converting
-        $response = curl_exec($ch);
-
-        curl_close($ch);
-
-//        // converting
-        $response1 = str_replace("<soap:Body>","",$response);
-        $response2 = str_replace("</soap:Body>","",$response1);
-
-        // converting to XML
-        $parser = simplexml_load_string($response2);
-
-        $result = $this->hhb_tohtml($response);
-        $this->result = $result;
-    }
-
-    public function post_order_to_anchor()
-    {
-        //Data, connection, auth
-        $dataFromTheForm = $_POST['fieldName']; // request data from the form
-        $soapUrl = "https://connecting.website.com/soap.asmx?op=DoSomething"; // asmx URL of WSDL
-        $soapUser = $this->anchorUsername;  //  username
-        $soapPassword = $this->anchorPassword; // password
-
-        // xml post structure
-
-        $xml_post_string = '<?xml version="1.0" encoding="utf-8"?>
-                     <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
-                       <soap:Body>
-                         <GetItemPrice xmlns="http://connecting.website.com/WSDL_Service"> // xmlns value to be set to your WSDL URL
-                           <PRICE>'.$dataFromTheForm.'</PRICE> 
-                         </GetItemPrice >
-                       </soap:Body>
-                     </soap:Envelope>';   // data from the form, e.g. some ID number
-
-        $headers = array(
-            "Content-type: text/xml;charset=\"utf-8\"",
-            "Accept: text/xml",
-            "Cache-Control: no-cache",
-            "Pragma: no-cache",
-            "SOAPAction: http://connecting.website.com/WSDL_Service/GetPrice",
-            "Content-length: ".strlen($xml_post_string),
-        ); //SOAPAction: your op URL
-
-        $url = $soapUrl;
-
-        // PHP cURL  for https connection with auth
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 1);
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_USERPWD, $soapUser.":".$soapPassword); // username and password - declared at the top of the doc
-        curl_setopt($ch, CURLOPT_HTTPAUTH, CURLAUTH_ANY);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $xml_post_string); // the SOAP request
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-
-        // converting
-        $response = curl_exec($ch);
-        curl_close($ch);
-
-        // converting
-        $response1 = str_replace("<soap:Body>","",$response);
-        $response2 = str_replace("</soap:Body>","",$response1);
-
-        // convertingc to XML
-        $parser = simplexml_load_string($response2);
-        // user $parser to get your data out of XML response and to display it.
-    }
-
-    public function fetch_successful_orders()
-    {
-       $this->result = $this->CallAPI('GET', $this->url);
-    }
-
-
-
-    public function load_short_code()
+    public function load_anchor_report()
     { ?>
         <div class="simple-contact-form">
-            <p><?php echo $this->result; ?></p>
-
+            <p class="text text-danger"><?php echo $this->anchor_report; ?></p>
         </div>
     <?php }
 }
