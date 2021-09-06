@@ -10,6 +10,72 @@ class WoocommerceEndPoint
     public $anchorUsername = 786424;
     public $anchorPassword = 'loveworld';
 
+
+    public $loveworldUsername = 'ck_6b4041800f46a7e5866fc9ec25e069e7e5d7885f';
+    public $loveworldPassword = 'cs_92aee06b50d52f3cef3065c40704881a66c29f91';
+
+    /*
+     * Fetch Shipping methods Handler
+     */
+    public function register_fetch_loveworld_orders_api()
+    {
+        register_rest_route('anchor-api/v1', 'fetch-internal-orders', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'handle_loveworld_orders_request')
+        ));
+    }
+
+    public function handle_loveworld_orders_request($data)
+    {
+        $headers = $data->get_headers();
+        $params  = $data->get_params();
+
+        $result  = $this->fetch_loveworld_orders('GET', 'https://loveworldbooks.org/newweb/wp-json/wc/v3/orders');
+
+        if ($result){
+            return new WP_REST_Response($result, 200);
+        }
+    }
+
+
+
+    function fetch_loveworld_orders($method, $url, $data = false)
+    {
+        $curl = curl_init();
+
+        switch ($method)
+        {
+            case "POST":
+                curl_setopt($curl, CURLOPT_POST, 1);
+
+                if ($data)
+                    curl_setopt($curl, CURLOPT_POSTFIELDS, $data);
+                break;
+            case "PUT":
+                curl_setopt($curl, CURLOPT_PUT, 1);
+                break;
+            case "GET":
+                curl_setopt($curl, CURLOPT_HTTPGET, 1);
+                break;
+            default:
+                if ($data)
+                    $url = sprintf("%s?%s", $url, http_build_query($data));
+        }
+
+        // Optional Authentication:
+        curl_setopt($curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
+        curl_setopt($curl, CURLOPT_USERPWD, "$this->loveworldUsername:$this->loveworldPassword");
+
+        curl_setopt($curl, CURLOPT_URL, $url);
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
+
+        $result = curl_exec($curl);
+
+        curl_close($curl);
+
+        return $result;
+    }
+
     /*
      * Fetch Shipping methods Handler
      */
@@ -200,12 +266,46 @@ class WoocommerceEndPoint
 
     public function submit_order_to_anchor()
     {
+        $order_id = 897;
+
+
+        $order = wc_get_order($order_id);
+
+        { ?>
+            <script>
+                alert("<?php echo 'Nothing post o' .$order; ?>")
+            </script>
+        <?php }
+
+//        if ($order){
+//            $order_data = $order->get_data();
+//
+//            $shipAccount = $this->submit_ship_to_customer_account_from_order_to_anchor($order);
+//
+//            //Loop through each item in the list
+//            foreach ($order_data->line_items as $item){
+//                // Generate xml post structure for each item
+//                $this->generate_order_item_xml_to_anchor($item, $shipAccount);
+//            }
+//
+//        }else{
+//            { ?>
+<!--                <script>-->
+<!--                    alert("--><?php //echo 'Nothing post o'; ?>//")
+//                </script>
+//            <?php //}
+//        }
+
+
+    }
+
+
+    Public function generate_order_item_xml_to_anchor($item,  $shipAccount){
+
         //Sending Data to anchor soap API
         $soapUrl = $this->anchorUrl; // asmx URL of WSDL
         $soapUser = $this->anchorUsername;  //  username
         $soapPassword = $this->anchorPassword; // password
-
-        // xml post structure
 
         $xml_post_string = '<?xml version="1.0" encoding="utf-8"?>
                             <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
@@ -220,18 +320,18 @@ class WoocommerceEndPoint
                                       <SOI>
                                         <Invoice_Seq_Id>0</Invoice_Seq_Id>
                                         <Bill_to_Seq_Id>'.$this->anchorUsername.'</Bill_to_Seq_Id>
-                                        <Ship_to_Seq_Id>7142057</Ship_to_Seq_Id>
+                                        <Ship_to_Seq_Id>'.$shipAccount->SubmitShipToAccountWithErrorResponse->SubmitShipToAccountWithErrorResult.'</Ship_to_Seq_Id>
                                         <PO_Number>TEST IMPR</PO_Number>
-                                        <Net>15</Net>  
+                                        <Net>'.$item->price.'</Net>  
                                         <Flag_Rush_Order>N</Flag_Rush_Order>      
                                         <Date_Ship_By>09-DEC-2018</Date_Ship_By>
-                                        <Shipping_Charge>5</Shipping_Charge>      
+                                        <Shipping_Charge>10</Shipping_Charge>      
                                         <SO_Detail>
                                           <SalesOrderDetailImprint>
-                                            <Product_Seq_Id>638118</Product_Seq_Id>
-                                            <Order_Quantity>1</Order_Quantity>
-                                            <Ship_Quantity>1</Ship_Quantity>
-                                            <Unit_Price>12</Unit_Price>
+                                            <Product_Seq_Id>'.$item->sku.'</Product_Seq_Id>
+                                            <Order_Quantity>'.$item->quantity.'</Order_Quantity>
+                                            <Ship_Quantity>'.$item->quantity.'</Ship_Quantity>
+                                            <Unit_Price>'.$item->price.'</Unit_Price>
                                             <Discount>0</Discount>
                                             <Extension>0</Extension>
                                             <Customer_ID>'.$this->anchorUsername.'</Customer_ID>
@@ -241,10 +341,10 @@ class WoocommerceEndPoint
                                             <indexing_color_id>1</indexing_color_id>
                                           </SalesOrderDetailImprint>
                                            <SalesOrderDetailImprint>
-                                            <Product_Seq_Id>638118</Product_Seq_Id>
-                                            <Order_Quantity>1</Order_Quantity>
-                                            <Ship_Quantity>1</Ship_Quantity>
-                                            <Unit_Price>12</Unit_Price>
+                                            <Product_Seq_Id>'.$item->sku.'</Product_Seq_Id>
+                                            <Order_Quantity>'.$item->quantity.'</Order_Quantity>
+                                            <Ship_Quantity>'.$item->quantity.'</Ship_Quantity>
+                                            <Unit_Price>'.$item->price.'</Unit_Price>
                                             <Discount>0</Discount>
                                             <Extension>0</Extension>
                                             <Customer_ID>'.$this->anchorUsername.'</Customer_ID>
@@ -265,9 +365,9 @@ class WoocommerceEndPoint
                                         <Store_Country>United States</Store_Country>
                                         <Intl_Tax_Number>0</Intl_Tax_Number>
                                         <Intl_Tax_Description>Test Description</Intl_Tax_Description>
-                                        <Intl_Tax_Amount>0</Intl_Tax_Amount>
-                                        <Special_Instruction>something</Special_Instruction>
-                                        <Date_Shipped>25-DEC-2021</Date_Shipped>
+                                        <Intl_Tax_Amount>'.$item->total_tax.'</Intl_Tax_Amount>
+                                        <Special_Instruction>'.$item->name.'</Special_Instruction>
+                                        <Date_Shipped>25-DEC-2018</Date_Shipped>
                                     </SOI>
                                       <sErrorCode>0</sErrorCode>
                                 </SubmitOrderWithImprint>
@@ -310,7 +410,13 @@ class WoocommerceEndPoint
 
         $parser = simplexml_load_string($response2);
 
-        return $this->XMLtoJSON($response2);
+//        return $this->XMLtoJSON($response2);
+
+        { ?>
+            <script>
+                alert("<?php echo $this->XMLtoJSON($response2); ?>")
+            </script>
+        <?php }
 
     }
 
@@ -1061,7 +1167,88 @@ class WoocommerceEndPoint
         // converting to XML
         $parser = simplexml_load_string($response2);
 //        return $response2;
-        return $this->XMLtoJSON($response2);
+        $result = $this->XMLtoJSON($response2);
+        return $result;
+
+    }
+
+    public function submit_ship_to_customer_account_from_order_to_anchor($order)
+    {
+        $soapUrl = $this->anchorUrl; // asmx URL of WSDL
+        $soapUser = $this->anchorUsername;  //  username
+        $soapPassword = $this->anchorPassword; // password
+
+        // xml post structure
+        $xml_post_string = '<?xml version="1.0" encoding="utf-8"?>
+                            <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+                              <soap:Header>
+                                <SecurityHeader xmlns="http://tempuri.org/AnchorWebservice/AnchorWebservice">
+                                  <Username>'.$this->anchorUsername.'</Username>
+                                  <Password>'.$this->anchorPassword.'</Password>
+                                </SecurityHeader>
+                              </soap:Header>
+                              <soap:Body>
+                                 <SubmitShipToAccountWithError xmlns="http://tempuri.org/AnchorWebservice/AnchorWebservice">
+                                      <ShipToCustomer>
+                                        <Bill_To_Seq_Id>'.$this->anchorUsername.'</Bill_To_Seq_Id>
+                                        <Ship_To_Seq_Id>0</Ship_To_Seq_Id>
+                                        <Name>'.$order->shipping->first_name.'  '.$order->shipping->last_name.'</Name>
+                                        <Street1>'.$order->address_1.'</Street1>
+                                        <Street2>'.$order->address_2.'</Street2>
+                                        <City>'.$order->city.'</City>
+                                        <State>'.$order->shipping->state.'</State>
+                                        <ZipCode>'.$order->shipping->postcode.'</ZipCode>
+                                        <Country>'.$order->shipping->country.'</Country>
+                                        <Telephone>'.$order->billing->phone.'</Telephone>
+                                        <Fax>'.$order->billing->phone.'</Fax>
+                                        <Email>'.$order->billing->email.'</Email>
+                                        <Contact>'.$order->shipping->first_name.'  '.$order->shipping->last_name.'</Contact>
+                                        <Customer_Type_Seq_Id>1</Customer_Type_Seq_Id>
+                                        <Ship_method_Seq_Id>8</Ship_method_Seq_Id>
+                                        <Country_Seq_Id>282</Country_Seq_Id>
+                                      </ShipToCustomer>
+                                      <sErrorCode></sErrorCode>
+                                 </SubmitShipToAccountWithError>
+                              </soap:Body>
+                            </soap:Envelope>';   // data from the form, e.g. some ID number
+
+        $headers = array(
+            "Content-type: text/xml;charset=\"utf-8\"",
+            "Accept: text/xml",
+            "Cache-Control: no-cache",
+            "Pragma: no-cache",
+//            "SOAPAction: http://connecting.website.com/WSDL_Service/GetPrice",
+            "Content-length: ".strlen($xml_post_string),
+        ); //SOAPAction: your op URL
+
+        $url = $soapUrl;
+
+        // PHP cURL  for https connection with auth
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 1);
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_USERPWD, $soapUser.":".$soapPassword); // username and password - declared at the top of the doc
+        curl_setopt($ch, CURLOPT_HTTPAUTH, CURLAUTH_ANY);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $xml_post_string); // the SOAP request
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+
+        // converting
+        $response = curl_exec($ch);
+
+        curl_close($ch);
+
+        // converting
+        $response1 = str_replace("<soap:Body>","",$response);
+        $response2 = str_replace("</soap:Body>","",$response1);
+
+        // converting to XML
+        $parser = simplexml_load_string($response2);
+//        return $response2;
+        $result = $this->XMLtoJSON($response2);
+        return $result;
 
     }
 
@@ -1706,7 +1893,8 @@ class WoocommerceEndPoint
     }
 
     /*
-     * Delete Order Handler
+     *  Return Boolean, given an Invoice Seq ID, Customer Seq ID, Item Seq ID as input.
+     *  Return TRUE if successful.
      */
     public function register_delete_order_api()
     {
@@ -1721,7 +1909,12 @@ class WoocommerceEndPoint
         $headers = $data->get_headers();
         $params  = $data->get_params();
 
-
+        if (empty($params['invoice_seq_id']) || empty($params['customer_id']) || empty($params['item_id'])){
+            return new WP_REST_Response(array([
+                'status' => 'error',
+                'message' => 'Missing parameters invoice_seq_id or customer_id or item_id'
+            ]), 400);
+        }
         $result  = $this->delete_order_from_anchor($params);
 
         if ($result){
@@ -1750,9 +1943,9 @@ class WoocommerceEndPoint
                               </soap:Header>
                                 <soap:Body>
                                     <DeleteOrder xmlns="http://tempuri.org/AnchorWebservice/AnchorWebservice">
-                                      <InvoiceSeqId>'.$params->invoive_seq_id.'</InvoiceSeqId>
-                                      <CustomerID>'.$params->customer_id.'</CustomerID>
-                                      <ItemID>'.$params->item_id.'</ItemID>
+                                      <InvoiceSeqId>'.$params['invoice_seq_id'].'</InvoiceSeqId>
+                                      <CustomerID>'.$params['customer_id'].'</CustomerID>
+                                      <ItemID>'.$params['item_id'].'</ItemID>
                                     </DeleteOrder>
                                   </soap:Body>
                             </soap:Envelope>';   // data from the form, e.g. some ID number

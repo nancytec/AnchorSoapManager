@@ -27,7 +27,8 @@ class AnchorSoapManager extends WoocommerceAPI {
 
     public function __construct()
     {
-//        add_action('init', array($this, 'test_submit_woocommerce_order_to_anchor'));
+        add_action('init', array($this, 'submit_order_to_anchor'));
+
 
         // Woocommerce Operation automation hooks
         $this->instantiate_woocommerce_operation_automation_hooks();
@@ -37,6 +38,9 @@ class AnchorSoapManager extends WoocommerceAPI {
 
         // Short-codes hooks
         $this->instantiate_short_codes_hooks();
+
+        //Woocomerce completed order hook
+        add_action('woocommerce_payment_complete', array($this, 'submit_order_to_anchor'));
 
     }
 
@@ -69,6 +73,8 @@ class AnchorSoapManager extends WoocommerceAPI {
         add_action('rest_api_init', array($this, 'register_get_various_flat_rate_api'));
         add_action('rest_api_init', array($this, 'register_get_various_ship_rate_api'));
         add_action('rest_api_init', array($this, 'register_submit_ship_to_customer_account_api'));
+        add_action('rest_api_init', array($this, 'register_fetch_loveworld_orders_api'));
+
 
     }
 
@@ -88,8 +94,8 @@ class AnchorSoapManager extends WoocommerceAPI {
     {
         add_action('woocommerce_delete_order', array($this, 'delete_order_from_anchor'));
 
-        //Woocomerce sompleted order hook
-        add_action('woocommerce_thankyou',array(&$this, 'test_submit_woocommerce_order_to_anchor'),10,1);
+
+
     }
 
     public function create_ship_to_customer_account_on_anchor($params)
@@ -340,7 +346,7 @@ class AnchorSoapManager extends WoocommerceAPI {
                                         <Shipping_Charge>5</Shipping_Charge>      
                                         <SO_Detail>
                                           <SalesOrderDetailImprint>
-                                            <Product_Seq_Id>638118</Product_Seq_Id>
+                                            <Product_Seq_Id>638119</Product_Seq_Id>
                                             <Order_Quantity>1</Order_Quantity>
                                             <Ship_Quantity>1</Ship_Quantity>
                                             <Unit_Price>12</Unit_Price>
@@ -422,10 +428,16 @@ class AnchorSoapManager extends WoocommerceAPI {
 
         $parser = simplexml_load_string($response2);
 
-        return $this->XMLtoJSON($response2);
+        $jsonObject =  $this->XMLtoJSON($response2);
+
+        echo $jsonObject->SubmitOrderWithImprintResponse->SOI->Invoice_Seq_Id. ' | ' . $jsonObject->SubmitOrderWithImprintResponse->SOI->Ship_to_Seq_Id;
+     ?>
+        <script>
+            alert(<?php echo $jsonObject; ?>)
+        </script>
+    <?php
 
     }
-
 
     public function fetch_processed_xml_orders_from_anchor()
     {

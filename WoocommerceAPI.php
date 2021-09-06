@@ -4,9 +4,9 @@ require 'WoocommerceEndPoint.php';
 
 class WoocommerceAPI extends WoocommerceEndPoint
 {
-    public $url = 'https://penciledge.net/apwb/wp-json/wc/v3/orders';
-    public $username = 'ck_6edcb0747280fd98c97577f5fa9db827268f23a4';
-    public $password = 'cs_84803adbb2652e8c447b27f879f1f9079ac366c0';
+    public $url = ' https://loveworldbooks.org/newweb/wp-json/wc/v3/orders';
+    public $username = 'ck_6b4041800f46a7e5866fc9ec25e069e7e5d7885f';
+    public $password = 'cs_92aee06b50d52f3cef3065c40704881a66c29f91';
 
 
     function CallAPI($method, $url, $data = false)
