@@ -4,7 +4,7 @@ require 'WoocommerceEndPoint.php';
 
 class WoocommerceAPI extends WoocommerceEndPoint
 {
-    public $url = ' https://loveworldbooks.org/newweb/wp-json/wc/v3/orders';
+    public $url = 'https://loveworldbooks.org/newweb/wp-json/wc/v3/orders';
     public $username = 'ck_6b4041800f46a7e5866fc9ec25e069e7e5d7885f';
     public $password = 'cs_92aee06b50d52f3cef3065c40704881a66c29f91';
 

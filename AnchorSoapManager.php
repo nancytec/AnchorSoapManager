@@ -27,7 +27,7 @@ class AnchorSoapManager extends WoocommerceAPI {
 
     public function __construct()
     {
-        add_action('init', array($this, 'submit_order_to_anchor'));
+//        add_filter('init', array($this, 'submit_order_to_anchor'));
 
 
         // Woocommerce Operation automation hooks

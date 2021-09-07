@@ -11,6 +11,7 @@ class WoocommerceEndPoint
     public $anchorPassword = 'loveworld';
 
 
+    public $loveworldUrl = 'https://loveworldbooks.org/newweb/wp-json/wc/v3/orders';
     public $loveworldUsername = 'ck_6b4041800f46a7e5866fc9ec25e069e7e5d7885f';
     public $loveworldPassword = 'cs_92aee06b50d52f3cef3065c40704881a66c29f91';
 
@@ -21,7 +22,7 @@ class WoocommerceEndPoint
     {
         register_rest_route('anchor-api/v1', 'fetch-internal-orders', array(
             'methods' => 'GET',
-            'callback' => array($this, 'handle_loveworld_orders_request')
+            'callback' => array($this, 'submit_order_to_anchor')
         ));
     }
 
@@ -38,42 +39,19 @@ class WoocommerceEndPoint
     }
 
 
-
     function fetch_loveworld_orders($method, $url, $data = false)
     {
-        $curl = curl_init();
-
-        switch ($method)
-        {
-            case "POST":
-                curl_setopt($curl, CURLOPT_POST, 1);
-
-                if ($data)
-                    curl_setopt($curl, CURLOPT_POSTFIELDS, $data);
-                break;
-            case "PUT":
-                curl_setopt($curl, CURLOPT_PUT, 1);
-                break;
-            case "GET":
-                curl_setopt($curl, CURLOPT_HTTPGET, 1);
-                break;
-            default:
-                if ($data)
-                    $url = sprintf("%s?%s", $url, http_build_query($data));
-        }
-
-        // Optional Authentication:
-        curl_setopt($curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
-        curl_setopt($curl, CURLOPT_USERPWD, "$this->loveworldUsername:$this->loveworldPassword");
-
-        curl_setopt($curl, CURLOPT_URL, $url);
-        curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
-
-        $result = curl_exec($curl);
-
-        curl_close($curl);
-
-        return $result;
+        $wp_request_headers = array(
+            'Authorization' => 'Basic ' . base64_encode( "$this->loveworldUsername:$this->loveworldPassword" )
+        );
+        $fetch_order_response = wp_remote_request(
+            $url,
+            array(
+                'method'    => $method,
+                'headers'   => $wp_request_headers
+            )
+        );
+        return json_decode(wp_remote_retrieve_body($fetch_order_response));
     }
 
     /*
@@ -266,46 +244,49 @@ class WoocommerceEndPoint
 
     public function submit_order_to_anchor()
     {
-        $order_id = 897;
+        $order_id = 914;
+
+        $orderUrl = "https://loveworldbooks.org/newweb/wp-json/wc/v3/orders/$order_id";
+
+         $order  = $this->fetch_loveworld_orders('GET', $orderUrl);
+
+        if ($order){
+
+            // Generate Shipping method
+            $shipping_method = 8;
+            foreach ($order->meta_data as $data){
+                if ($data->key == 'billing_shipping_method'){
+                    $shipping_method = $data->value;
+                }
+            }
+
+            // Generate Ship to Account
+            $shipAccount = $this->submit_ship_to_customer_account_from_order_to_anchor($order, $shipping_method);
 
 
-        $order = wc_get_order($order_id);
-
-        { ?>
-            <script>
-                alert("<?php echo 'Nothing post o' .$order; ?>")
-            </script>
-        <?php }
-
-//        if ($order){
-//            $order_data = $order->get_data();
-//
-//            $shipAccount = $this->submit_ship_to_customer_account_from_order_to_anchor($order);
-//
 //            //Loop through each item in the list
-//            foreach ($order_data->line_items as $item){
-//                // Generate xml post structure for each item
-//                $this->generate_order_item_xml_to_anchor($item, $shipAccount);
-//            }
-//
-//        }else{
-//            { ?>
-<!--                <script>-->
-<!--                    alert("--><?php //echo 'Nothing post o'; ?>//")
-//                </script>
-//            <?php //}
-//        }
+            $order_result = false;
+            foreach ($order->line_items as $item){
+                // Generate xml post structure for each item
+                $order_result = $this->generate_order_item_xml_to_anchor($item, $shipping_method, $order->shipping_total, $shipAccount);
+            }
 
+            return $order_result;
+        }else{
+            echo "Not found";
+        }
 
     }
 
 
-    Public function generate_order_item_xml_to_anchor($item,  $shipAccount){
+    Public function generate_order_item_xml_to_anchor($item, $shipping_method, $shipping_cost, $shipAccount){
+
 
         //Sending Data to anchor soap API
         $soapUrl = $this->anchorUrl; // asmx URL of WSDL
         $soapUser = $this->anchorUsername;  //  username
         $soapPassword = $this->anchorPassword; // password
+
 
         $xml_post_string = '<?xml version="1.0" encoding="utf-8"?>
                             <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
@@ -325,7 +306,7 @@ class WoocommerceEndPoint
                                         <Net>'.$item->price.'</Net>  
                                         <Flag_Rush_Order>N</Flag_Rush_Order>      
                                         <Date_Ship_By>09-DEC-2018</Date_Ship_By>
-                                        <Shipping_Charge>10</Shipping_Charge>      
+                                        <Shipping_Charge>'.$shipping_cost.'</Shipping_Charge>      
                                         <SO_Detail>
                                           <SalesOrderDetailImprint>
                                             <Product_Seq_Id>'.$item->sku.'</Product_Seq_Id>
@@ -355,7 +336,7 @@ class WoocommerceEndPoint
                                           </SalesOrderDetailImprint>
                                         </SO_Detail>
                                         <Flag_All_Complete>N</Flag_All_Complete>
-                                        <Ship_method_Seq_Id>8</Ship_method_Seq_Id>
+                                        <Ship_method_Seq_Id>'.$shipping_method.'</Ship_method_Seq_Id>
                                         <Store_Name>Loveworld Books</Store_Name>
                                         <Store_Message>Test Successful</Store_Message>
                                         <Store_Street>8623 Hemlock Hill Drive</Store_Street>
@@ -410,13 +391,9 @@ class WoocommerceEndPoint
 
         $parser = simplexml_load_string($response2);
 
-//        return $this->XMLtoJSON($response2);
+        return $this->XMLtoJSON($response2);
 
-        { ?>
-            <script>
-                alert("<?php echo $this->XMLtoJSON($response2); ?>")
-            </script>
-        <?php }
+
 
     }
 
@@ -1172,7 +1149,7 @@ class WoocommerceEndPoint
 
     }
 
-    public function submit_ship_to_customer_account_from_order_to_anchor($order)
+    public function submit_ship_to_customer_account_from_order_to_anchor($order, $shipping_method)
     {
         $soapUrl = $this->anchorUrl; // asmx URL of WSDL
         $soapUser = $this->anchorUsername;  //  username
@@ -1204,7 +1181,7 @@ class WoocommerceEndPoint
                                         <Email>'.$order->billing->email.'</Email>
                                         <Contact>'.$order->shipping->first_name.'  '.$order->shipping->last_name.'</Contact>
                                         <Customer_Type_Seq_Id>1</Customer_Type_Seq_Id>
-                                        <Ship_method_Seq_Id>8</Ship_method_Seq_Id>
+                                        <Ship_method_Seq_Id>'.$shipping_method.'</Ship_method_Seq_Id>
                                         <Country_Seq_Id>282</Country_Seq_Id>
                                       </ShipToCustomer>
                                       <sErrorCode></sErrorCode>
