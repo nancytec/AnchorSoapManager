@@ -38,7 +38,6 @@ class WoocommerceEndPoint
         }
     }
 
-
     function fetch_loveworld_orders($method, $url, $data = false)
     {
         $wp_request_headers = array(
@@ -242,9 +241,9 @@ class WoocommerceEndPoint
         }
     }
 
-    public function submit_order_to_anchor()
+    public function submit_order_to_anchor($order_id)
     {
-        $order_id = 914;
+//        $order_id = 914;
 
         $orderUrl = "https://loveworldbooks.org/newweb/wp-json/wc/v3/orders/$order_id";
 
@@ -263,8 +262,7 @@ class WoocommerceEndPoint
             // Generate Ship to Account
             $shipAccount = $this->submit_ship_to_customer_account_from_order_to_anchor($order, $shipping_method);
 
-
-//            //Loop through each item in the list
+             //Loop through each item in the list
             $order_result = false;
             foreach ($order->line_items as $item){
                 // Generate xml post structure for each item
@@ -277,7 +275,6 @@ class WoocommerceEndPoint
         }
 
     }
-
 
     Public function generate_order_item_xml_to_anchor($item, $shipping_method, $shipping_cost, $shipAccount){
 

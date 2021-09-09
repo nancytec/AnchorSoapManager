@@ -47,4 +47,59 @@ class WoocommerceAPI extends WoocommerceEndPoint
     }
 
 
+    public function add_custom_shipping() {
+        // this is just before the end of the table
+        print '
+            <tr>
+            <td>Shipping Method</td>
+            <td id="shipping_method_name">AIM Canada Post</td>
+            </tr>
+            <tr>
+            <td>Shipping Cost</td>
+            <td id="shipping_cost">$45.6</td>
+            </tr>
+        ';
+    }
+
+    public function custom_shipping_method_field($checkout)
+    {
+        echo '<h5>'.__('Shipping Method').'</h5>';
+        woocommerce_form_field('custom_shipping_method', array(
+            'type' => 'select',
+            'class' => array('form-control'),
+            'id'    => 'shipping_method',
+            'label' => __('Shipping Method'),
+            'required' => true,
+            'options' => array(
+                'blank' => __('Select a shipping method'),
+                '314' => __('AIM Canada Post'),
+                '121' => __('FedEx International Economy (DDU)'),
+                '120' => __('FedEx International Priority (DDU)'),
+                '606' => __('Int\'l Post (7-15 Days)'),
+                '350' => __('POS Int\'l First Class Mail'),
+                '351' => __('POS Int\'l Priority Mail'),
+                '354' => __('UPS Standard to Canada (DDP)'),
+            ),
+        ),
+
+            $checkout->get_value('custom_shipping_method'));
+    }
+
+    public function customised_checkout_field_process()
+    {
+        // Show an error message if the field is not set.
+        if (!$_POST['custom_shipping_method']) wc_add_notice(__('Please select a shipping method!') , 'error');
+
+    }
+
+    public function custom_checkout_field_update_order_meta($order_id)
+    {
+        if (!empty($_POST['custom_shipping_method'])) {
+            update_post_meta($order_id, 'Shipping Method',sanitize_text_field($_POST['custom_shipping_method']));
+        }
+    }
+
+    public function my_custom_checkout_field_display_admin_order_meta($order){
+        echo ''.__('custom_shipping_method').': ' . get_post_meta( $order->get_id(), 'custom_shipping_method', true ) . '';
+    }
 }

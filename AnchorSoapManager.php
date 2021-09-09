@@ -29,6 +29,8 @@ class AnchorSoapManager extends WoocommerceAPI {
     {
 //        add_filter('init', array($this, 'submit_order_to_anchor'));
 
+        //Load Javascripts
+        add_action('wp_footer', array($this, 'load_scripts'));
 
         // Woocommerce Operation automation hooks
         $this->instantiate_woocommerce_operation_automation_hooks();
@@ -39,8 +41,6 @@ class AnchorSoapManager extends WoocommerceAPI {
         // Short-codes hooks
         $this->instantiate_short_codes_hooks();
 
-        //Woocomerce completed order hook
-        add_action('woocommerce_payment_complete', array($this, 'submit_order_to_anchor'));
 
     }
 
@@ -92,11 +92,30 @@ class AnchorSoapManager extends WoocommerceAPI {
      */
     public function instantiate_woocommerce_operation_automation_hooks()
     {
+        //Add custom select shipping method field
+        add_action( 'woocommerce_before_order_notes', array($this, 'custom_shipping_method_field'));
+
+        //For data validation of the custom field
+        add_action('woocommerce_checkout_process', array($this, 'customised_checkout_field_process'));
+
+        // confirm that the details entered into the custom field by the client, is being saved or not.
+        add_action('woocommerce_checkout_update_order_meta', array($this, 'custom_checkout_field_update_order_meta'));
+
+        //Add custom info to the order review section on the checkout page
+        add_action( 'woocommerce_review_order_before_order_total', array($this, 'add_custom_shipping'));
+
+        // Display field value on the order edit page
+        add_action('woocommerce_admin_order_data_after_billing_address', array($this, 'my_custom_checkout_field_display_admin_order_meta'), 10, 1 );
+
+        //Woocomerce completed order hook
+        add_action('woocommerce_payment_complete', array($this, 'submit_order_to_anchor'));
+
         add_action('woocommerce_delete_order', array($this, 'delete_order_from_anchor'));
 
-
-
     }
+
+
+
 
     public function create_ship_to_customer_account_on_anchor($params)
     {
@@ -314,8 +333,6 @@ class AnchorSoapManager extends WoocommerceAPI {
     }
 
 
-
-
     public function test_submit_woocommerce_order_to_anchor()
     {
         //Sending Data to anchor soap API
@@ -512,6 +529,15 @@ class AnchorSoapManager extends WoocommerceAPI {
             <p class="text text-danger"><?php echo $this->anchor_report; ?></p>
         </div>
     <?php }
+
+
+    public function load_scripts()
+    { ?>
+        <script src="<?php echo plugin_dir_url(__FILE__) ?>js/jquery.js"></script>
+        <script src="<?php echo plugin_dir_url(__FILE__) ?>js/main.js"></script>
+    <?php }
 }
+
+
 
 new AnchorSoapManager;
