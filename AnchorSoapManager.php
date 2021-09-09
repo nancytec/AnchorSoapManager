@@ -18,6 +18,7 @@ require 'WoocommerceAPI.php';
 
 class AnchorSoapManager extends WoocommerceAPI {
 
+    public $countries;
 
     public $anchorUrl = 'https://soap.anchordistributors.com/anchorwebservice.asmx';
     public $anchorUsername = 786424;
@@ -103,26 +104,39 @@ class AnchorSoapManager extends WoocommerceAPI {
 
         add_action('woocommerce_checkout_process', 'woocommerce_get_data', 10);
 
+
+        //Add custom select shipping countries field
+        add_action( 'woocommerce_before_order_notes', array($this, 'fetch_anchor_countries_field'));
         //Add custom select shipping method field
-        add_action( 'woocommerce_before_order_notes', array($this, 'custom_shipping_method_field'));
-
-        //For data validation of the custom field
-        add_action('woocommerce_checkout_process', array($this, 'customised_checkout_field_process'));
-
-        // confirm that the details entered into the custom field by the client, is being saved or not.
-        add_action('woocommerce_checkout_update_order_meta', array($this, 'custom_checkout_field_update_order_meta'));
+        add_action( 'woocommerce_before_order_notes', array($this, 'fetch_anchor_shipping_method_field'));
 
 
-        //Add custom info to the order review section on the checkout page
+        //For data validation of the shipping method field
+        add_action('woocommerce_checkout_process', array($this, 'anchor_shipping_method_field_validation'));
+        //For data validation of the shipping countries field
+        add_action('woocommerce_checkout_process', array($this, 'anchor_countries_field_validation'));
+
+
+        // confirm that the details entered into the shipping method field by the client, is being saved or not.
+        add_action('woocommerce_checkout_update_order_meta', array($this, 'anchor_shipping_method_field_update_order_meta'));
+        // confirm that the details entered into the shipping countries field by the client, is being saved or not.
+        add_action('woocommerce_checkout_update_order_meta', array($this, 'anchor_countries_field_update_order_meta'));
+
+
+        // Display shipping method field value on the order edit page
+        add_action('woocommerce_admin_order_data_after_billing_address', array($this, 'anchor_shipping_method_field_display_admin_order_meta'), 10, 1 );
+        // Display shipping countries field value on the order edit page
+        add_action('woocommerce_admin_order_data_after_billing_address', array($this, 'anchor_countries_field_display_admin_order_meta'), 10, 1 );
+
+
+
+        // Add custom info to the order review section on the checkout page
         add_action( 'woocommerce_review_order_before_order_total', array($this, 'add_custom_shipping'));
 
-        // Display field value on the order edit page
-        add_action('woocommerce_admin_order_data_after_billing_address', array($this, 'my_custom_checkout_field_display_admin_order_meta'), 10, 1 );
-
-        //Woocomerce completed order hook
+        // Woocomerce completed order hook
         add_action('woocommerce_payment_complete', array($this, 'submit_order_to_anchor'));
 
-        add_action('woocommerce_delete_order', array($this, 'delete_order_from_anchor'));
+//        add_action('woocommerce_delete_order', array($this, 'delete_order_from_anchor'));
 
     }
 
@@ -576,24 +590,11 @@ class AnchorSoapManager extends WoocommerceAPI {
             }
 
             function fetchCountries() {
-               var countries = undefined;
-                    $.ajax({
-                        url: "https://loveworldbooks.org/newweb/wp-json/anchor-api/v1/fetch-countries",
-                        type: "GET",
-                        headers: {
-                            "Authorization": "Basic <?php echo base64_encode( " $this->liveLoveworldUsername:$this->liveLoveworldPassword"); ?>"
-                        },
-                        dataType: "json",
-                        success: function (data) {
-                            console.log(data.GetCountriesResponse.GetCountriesResult.ListValue2);
-                            countries = data.GetCountriesResponse.GetCountriesResult.ListValue2;
-                        },
-                        error: function(xhr) {
-                            console.log(xhr);
-                        }
-                    });
+                var selectedValue = document.getElementById("custom_shipping_country").value;
+                var text = getSelectedText('custom_shipping_country');
 
-                    return countries;
+                $('#shipping_country_name').text(text);
+                return selectedValue;
             }
 
             function fetchShippingCost() {
@@ -607,8 +608,7 @@ class AnchorSoapManager extends WoocommerceAPI {
                 // 3) Fetch Weight
 
                 // 4) Fetch country sequence id
-               var countries =  fetchCountries();
-
+               var country =  fetchCountries();
 
 
                 // $('#shipping_cost').text(selectedValue);
@@ -618,7 +618,9 @@ class AnchorSoapManager extends WoocommerceAPI {
             fetchShippingCost();
             $("#shipping_method").on("change keyup paste", function(){
                 fetchShippingCost();
-
+            });
+            $("#custom_shipping_country").on("change keyup paste", function(){
+                fetchShippingCost();
             });
 
             });
