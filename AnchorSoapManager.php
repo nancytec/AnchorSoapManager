@@ -23,7 +23,14 @@ class AnchorSoapManager extends WoocommerceAPI {
     public $anchorUsername = 786424;
     public $anchorPassword = 'loveworld';
 
+    public $liveLoveworldUrl = 'https://loveworldbooks.org/newweb/wp-json/wc/v3/';
+    public $liveLoveworldUsername = 'ck_a8c4321562c43cbc28fbc1c997f91ee703cf4c05';
+    public $liveLoveworldPassword = 'cs_21ebe19064e7731d567e3d177d9d093f5d10c652';
+
+
     public $anchor_report;
+    public $order;
+    public $posted_data;
 
     public function __construct()
     {
@@ -34,6 +41,7 @@ class AnchorSoapManager extends WoocommerceAPI {
 
         // Woocommerce Operation automation hooks
         $this->instantiate_woocommerce_operation_automation_hooks();
+
 
         // Rest APIS for fetching Anchor Web services stuffs
         $this->instantiate_rest_api_hooks();
@@ -92,6 +100,9 @@ class AnchorSoapManager extends WoocommerceAPI {
      */
     public function instantiate_woocommerce_operation_automation_hooks()
     {
+
+        add_action('woocommerce_checkout_process', 'woocommerce_get_data', 10);
+
         //Add custom select shipping method field
         add_action( 'woocommerce_before_order_notes', array($this, 'custom_shipping_method_field'));
 
@@ -100,6 +111,7 @@ class AnchorSoapManager extends WoocommerceAPI {
 
         // confirm that the details entered into the custom field by the client, is being saved or not.
         add_action('woocommerce_checkout_update_order_meta', array($this, 'custom_checkout_field_update_order_meta'));
+
 
         //Add custom info to the order review section on the checkout page
         add_action( 'woocommerce_review_order_before_order_total', array($this, 'add_custom_shipping'));
@@ -114,8 +126,11 @@ class AnchorSoapManager extends WoocommerceAPI {
 
     }
 
+    function woocommerce_get_data(){
 
+            $this->posted_data = WC()->cart->get_cart();
 
+    }
 
     public function create_ship_to_customer_account_on_anchor($params)
     {
@@ -534,7 +549,84 @@ class AnchorSoapManager extends WoocommerceAPI {
     public function load_scripts()
     { ?>
         <script src="<?php echo plugin_dir_url(__FILE__) ?>js/jquery.js"></script>
-        <script src="<?php echo plugin_dir_url(__FILE__) ?>js/main.js"></script>
+        <script>
+        $(document).ready(function(){
+
+            // $("#shipping_method_name").hide();
+            // $("#shipping_cost").hide();
+
+            function getSelectedText(elementId) {
+                var elt = document.getElementById(elementId);
+                if (elt.selectedIndex == -1)
+                return null;
+                return elt.options[elt.selectedIndex].text;
+            }
+
+            function getSelectValue() {
+                var selectedValue = document.getElementById("shipping_method").value;
+                var text = getSelectedText('shipping_method');
+
+                $('#shipping_method_name').text(text);
+                return selectedValue;
+            }
+
+            function fetchPostCode() {
+                var postCode = document.getElementById("billing_postcode").value;
+                return postCode;
+            }
+
+            function fetchCountries() {
+               var countries = undefined;
+                    $.ajax({
+                        url: "https://loveworldbooks.org/newweb/wp-json/anchor-api/v1/fetch-countries",
+                        type: "GET",
+                        headers: {
+                            "Authorization": "Basic <?php echo base64_encode( " $this->liveLoveworldUsername:$this->liveLoveworldPassword"); ?>"
+                        },
+                        dataType: "json",
+                        success: function (data) {
+                            console.log(data.GetCountriesResponse.GetCountriesResult.ListValue2);
+                            countries = data.GetCountriesResponse.GetCountriesResult.ListValue2;
+                        },
+                        error: function(xhr) {
+                            console.log(xhr);
+                        }
+                    });
+
+                    return countries;
+            }
+
+            function fetchShippingCost() {
+                // 1) Fetch shipping method sequence id
+                getSelectValue();
+                var shipping_method_seq_id =  getSelectValue();
+
+                // 2) Fetch ZipCode
+                var postCode = fetchPostCode();
+
+                // 3) Fetch Weight
+
+                // 4) Fetch country sequence id
+               var countries =  fetchCountries();
+
+
+
+                // $('#shipping_cost').text(selectedValue);
+            }
+
+
+            fetchShippingCost();
+            $("#shipping_method").on("change keyup paste", function(){
+                fetchShippingCost();
+
+            });
+
+            });
+
+
+
+
+        </script>
     <?php }
 }
 

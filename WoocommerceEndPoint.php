@@ -15,6 +15,8 @@ class WoocommerceEndPoint
     public $loveworldUsername = 'ck_6b4041800f46a7e5866fc9ec25e069e7e5d7885f';
     public $loveworldPassword = 'cs_92aee06b50d52f3cef3065c40704881a66c29f91';
 
+
+
     /*
      * Fetch Shipping methods Handler
      */
@@ -41,7 +43,7 @@ class WoocommerceEndPoint
     function fetch_loveworld_orders($method, $url, $data = false)
     {
         $wp_request_headers = array(
-            'Authorization' => 'Basic ' . base64_encode( "$this->loveworldUsername:$this->loveworldPassword" )
+            'Authorization' => 'Basic ' . base64_encode( "$this->loveworldUsername:$this->loveworldPassword")
         );
         $fetch_order_response = wp_remote_request(
             $url,

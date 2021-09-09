@@ -71,7 +71,6 @@ class WoocommerceAPI extends WoocommerceEndPoint
             'label' => __('Shipping Method'),
             'required' => true,
             'options' => array(
-                'blank' => __('Select a shipping method'),
                 '314' => __('AIM Canada Post'),
                 '121' => __('FedEx International Economy (DDU)'),
                 '120' => __('FedEx International Priority (DDU)'),
