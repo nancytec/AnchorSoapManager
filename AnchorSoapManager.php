@@ -607,6 +607,7 @@ class AnchorSoapManager extends WoocommerceAPI {
 
                 // 3) Fetch Weight
 
+
                 // 4) Fetch country sequence id
                var country =  fetchCountries();
 
@@ -622,8 +623,11 @@ class AnchorSoapManager extends WoocommerceAPI {
             $("#custom_shipping_country").on("change keyup paste", function(){
                 fetchShippingCost();
             });
-
+            $("#billing_postcode").on("change keyup paste", function(){
+                fetchShippingCost();
             });
+
+        });
 
 
 

@@ -71,7 +71,6 @@ class WoocommerceAPI extends WoocommerceEndPoint
     }
 
 
-
     /*
      * Shipping method field plus validation
      */
